@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Giá Vắc Xin</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- DataTables Bootstrap 5 CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+    <!-- DataTables Responsive CSS -->
+    <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f6f9;
+        }
+
+        .container {
+            margin-top: 40px;
+            margin-bottom: 40px;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-bottom: 30px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        /* Style cho Header Bảng */
+        table.dataTable thead th {
+            background-color: #0d6efd;
+            color: white;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        table.dataTable tbody td {
+            vertical-align: middle;
+        }
+
+        /* Style căn giữa cho các cột */
+        table.dataTable tbody td:nth-child(1),
+        table.dataTable tbody td:nth-child(4),
+        table.dataTable tbody td:nth-child(7) {
+            text-align: center;
+        }
+
+        /* Căn phải cho cột giá tiền */
+        table.dataTable tbody td:nth-child(5),
+        table.dataTable tbody td:nth-child(6) {
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .status-co {
+            color: #198754;
+            font-weight: bold;
+        }
+
+        .status-het {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        /* Thêm responsive cho layout trên mobile */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin-top: 20px;
+                margin-bottom: 20px;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            table.dataTable thead th {
+                white-space: normal;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2 class="text-center">💉 BẢNG GIÁ VẮC XIN</h2>
+
+        <!-- Spinner hiển thị khi đang tải dữ liệu -->
+        <div id="loading" class="text-center my-5">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <h5 class="mt-3 text-secondary">Đang kết nối và tải dữ liệu từ Google Sheet...</h5>
+        </div>
+
+        <!-- Bảng dữ liệu sẽ được ẩn đi cho đến khi tải xong -->
+        <div id="table-container" style="display: none; width: 100%;">
+            <table id="dataTable" class="table table-hover table-striped table-bordered nowrap" style="width:100%">
+                <thead>
+                    <tr>
+                        <th width="5%">TT</th>
+                        <th width="25%">Phòng bệnh</th>
+                        <th width="20%">Tên vắc xin</th>
+                        <th width="15%">Nước sản xuất</th>
+                        <th width="15%">Giá bán lẻ/liều (VNĐ)</th>
+                        <th width="10%">Giá ưu đãi/liều (VNĐ)</th>
+                        <th width="10%">Tình trạng</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dữ liệu sẽ được tự động chèn vào đây bởi JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- jQuery (Bắt buộc cho DataTables) -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS & Bootstrap 5 Integration -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- DataTables Responsive JS -->
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
+    <!-- PapaParse để dễ dàng đọc và chuyển đổi CSV từ Google Sheet sang JSON -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // ID và GID của sheet từ URL Google Sheet của bạn
+            const sheetId = '1TCKp-tQ1Ym4G7xHzBe4rlZhtgjYkFusl8dfSCtuTR00';
+            const gid = '1784081424';
+
+            // Link API đọc CSV từ Google Sheet
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+
+            // Dùng PapaParse để đọc dữ liệu CSV
+            Papa.parse(csvUrl, {
+                download: true,
+                header: false, // Dùng mảng [0,1,2...] thay vì object để tránh lỗi tên cột xuống dòng
+                skipEmptyLines: true,
+                complete: function (results) {
+
+                    // Lấy dữ liệu bỏ qua dòng đầu tiên (dòng tiêu đề: TT, Phòng bệnh, ...)
+                    let dataRows = results.data.slice(1);
+
+                    // Khởi tạo DataTables
+                    $('#dataTable').DataTable({
+                        data: dataRows,
+                        columns: [
+                            { data: 0, defaultContent: '' }, // TT
+                            { data: 1, defaultContent: '' }, // Phòng bệnh
+                            { data: 2, defaultContent: '' }, // Tên vắc xin
+                            { data: 3, defaultContent: '' }, // Nước sản xuất
+                            {
+                                data: 4, // Giá bán lẻ
+                                defaultContent: '',
+                                render: function (data, type, row) {
+                                    if (type === 'display' && data) {
+                                        return '<span class="text-primary">' + data + '</span>';
+                                    }
+                                    return data;
+                                }
+                            },
+                            {
+                                data: 5, // Giá ưu đãi
+                                defaultContent: '',
+                                render: function (data, type, row) {
+                                    if (type === 'display' && data) {
+                                        return '<span class="text-danger">' + data + '</span>';
+                                    }
+                                    return data;
+                                }
+                            },
+                            {
+                                data: 6, // Tình trạng
+                                defaultContent: '',
+                                render: function (data, type, row) {
+                                    if (type === 'display' && data) {
+                                        let statusStr = data.toString().trim().toLowerCase();
+                                        if (statusStr.includes('có')) {
+                                            return '<span class="status-co">' + data + '</span>';
+                                        } else if (statusStr !== '') {
+                                            return '<span class="status-het">' + data + '</span>';
+                                        }
+                                    }
+                                    return data;
+                                }
+                            }
+                        ],
+                        // Tùy chỉnh ngôn ngữ sang tiếng Việt
+                        language: {
+                            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json',
+                        },
+                        // Các tùy chọn cài đặt khác
+                        pageLength: 25,
+                        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Tất cả"]],
+                        ordering: true,
+                        info: true,
+                        autoWidth: false,
+                        responsive: true
+                    });
+
+                    // Tắt trạng thái loading và hiện bảng
+                    $('#loading').hide();
+                    $('#table-container').fadeIn();
+                },
+                error: function (err) {
+                    // Nếu bị lỗi (ví dụ file chưa được chia sẻ Công Khai)
+                    $('#loading').html(`
+                    <div class="alert alert-danger" role="alert">
+                        <h4 class="alert-heading">Đã xảy ra lỗi!</h4>
+                        <p>Không thể tải dữ liệu từ Google Sheet. Vui lòng kiểm tra lại liên kết.</p>
+                        <hr>
+                        <p class="mb-0"><strong>Lưu ý:</strong> File Google Sheet phải được set quyền <b>"Bất kỳ ai có liên kết đều có thể xem" (Anyone with the link can view)</b>.</p>
+                    </div>
+                `);
+                    console.error("Lỗi phân tích CSV: ", err);
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
