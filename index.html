@@ -29,6 +29,8 @@
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 1400px;
+            /* Mở rộng tối đa cho màn hình desktop để hiện đủ cột */
         }
 
         h2 {
@@ -111,7 +113,7 @@
 
         <!-- Bảng dữ liệu sẽ được ẩn đi cho đến khi tải xong -->
         <div id="table-container" style="display: none; width: 100%;">
-            <table id="dataTable" class="table table-hover table-striped table-bordered nowrap" style="width:100%">
+            <table id="dataTable" class="table table-hover table-striped table-bordered" style="width:100%">
                 <thead>
                     <tr>
                         <th width="5%">TT</th>
@@ -150,7 +152,7 @@
     <script>
         $(document).ready(function () {
             // ID và GID của sheet từ URL Google Sheet của bạn
-            const sheetId = '1TCKp-tQ1Ym4G7xHzBe4rlZhtgjYkFusI8dfSCtuTR00';
+            const sheetId = '1TCKp-tQ1Ym4G7xHzBe4rlZhtgjYkFusl8dfSCtuTR00';
             const gid = '1784081424';
 
             // Link API đọc CSV từ Google Sheet
