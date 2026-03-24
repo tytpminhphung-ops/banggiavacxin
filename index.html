@@ -38,7 +38,6 @@
         table.dataTable thead th {
             background-color: #0d6efd;
             color: white;
-            white-space: nowrap;
             text-align: center;
         }
 
@@ -76,11 +75,34 @@
             }
 
             h2 {
-                font-size: 1.5rem;
+                font-size: 1.3rem;
             }
 
-            table.dataTable thead th {
-                white-space: normal;
+            /* Responsive Search & Button */
+            .dataTables_filter {
+                width: 100%;
+            }
+
+            .dataTables_filter label {
+                width: 100% !important;
+                display: flex !important;
+                flex-direction: column;
+                align-items: center !important;
+            }
+
+            .dataTables_filter input {
+                width: 100% !important;
+                margin-left: 0 !important;
+                margin-top: 5px;
+                height: 40px;
+            }
+
+            .dataTables_filter a.btn-danger {
+                width: 100% !important;
+                margin-left: 0 !important;
+                margin-top: 10px;
+                padding: 10px;
+                font-weight: bold;
             }
         }
     </style>
@@ -102,15 +124,16 @@
         </div>
 
         <div id="table-container" style="display: none; width: 100%;">
-            <table id="dataTable" class="table table-hover table-striped table-bordered" style="width:100%">
+            <table id="dataTable" class="table table-hover table-striped table-bordered dt-responsive"
+                style="width:100%">
                 <thead>
                     <tr>
-                        <th width="5%">TT</th>
-                        <th width="25%">Phòng bệnh</th>
-                        <th width="20%">Tên vắc xin</th>
-                        <th width="15%">Nước sản xuất</th>
-                        <th width="15%">Giá thành (VNĐ)</th>
-                        <th width="10%">Tình trạng</th>
+                        <th>TT</th>
+                        <th>Phòng bệnh</th>
+                        <th>Tên vắc xin</th>
+                        <th>Nước sản xuất</th>
+                        <th>Giá thành (VNĐ)</th>
+                        <th>Tình trạng</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -139,7 +162,12 @@
                 skipEmptyLines: true,
                 complete: function (results) {
                     let dataRows = results.data.slice(1);
-                    $('#dataTable').DataTable({
+
+                    // Hiện container trước khi init để DataTable tính toán kích thước đúng
+                    $('#loading').hide();
+                    $('#table-container').show();
+
+                    let table = $('#dataTable').DataTable({
                         data: dataRows,
                         columns: [
                             { data: 0, defaultContent: '' }, // TT
@@ -183,14 +211,24 @@
                         responsive: true,
                         initComplete: function () {
                             var filterDiv = $('.dataTables_filter');
-                            filterDiv.addClass('d-flex align-items-center justify-content-end mb-2');
-                            filterDiv.find('label').css({ 'margin-bottom': '0', 'display': 'flex', 'align-items': 'center' });
-                            filterDiv.append('<a href="https://tytpminhphung-ops.github.io/dangkytiemvacxin/" class="btn btn-danger btn-sm ms-3 text-nowrap shadow-sm text-white" target="_blank">📝 Đăng ký tiêm</a>');
+                            // Sử dụng container d-flex để điều khiển linh hoạt hơn
+                            filterDiv.addClass('d-flex flex-wrap align-items-center justify-content-center justify-content-md-end gap-2 mb-3');
+
+                            // Tùy chỉnh Label/Input
+                            var label = filterDiv.find('label');
+                            label.addClass('d-flex align-items-center mb-0');
+
+                            // Kiểm tra nếu chưa có nút thì mới append (tránh lặp)
+                            if (filterDiv.find('.btn-register').length === 0) {
+                                filterDiv.append('<a href="https://tytpminhphung-ops.github.io/dangkytiemvacxin/" class="btn btn-danger btn-sm btn-register text-nowrap shadow-sm text-white" target="_blank">📝 Đăng ký tiêm</a>');
+                            }
                         }
                     });
 
-                    $('#loading').hide();
-                    $('#table-container').fadeIn();
+                    // Đảm bảo responsive được tính toán lại sau khi mọi thứ đã hiển thị
+                    setTimeout(function () {
+                        table.columns.adjust().responsive.recalc();
+                    }, 200);
                 },
                 error: function (err) {
                     $('#loading').html(`
